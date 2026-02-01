@@ -1,0 +1,636 @@
+------------------------------------------------------------------------------------------------------
+      name:  analysis
+       log:  /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My Drive/ECON467/Le-Proje
+> ct/Data/Analysis_Data/../../Command_Files/Analysis.log
+  log type:  text
+ opened on:  13 Dec 2025, 23:42:33
+
+. 
+. 
+. * Optional setup (uncomment if needed)
+. // ssc install outreg2
+. // ssc install aaplot
+. // graph set window fontface "Garamond"
+. 
+. 
+. 
+. //*****************************************************************************
+. //                          PRELIMINARY ANALYSIS
+. //*****************************************************************************
+. 
+. //==============================================
+. // 0. Load Processed Analysis Dataset
+. //==============================================
+. 
+. use "analysis.dta", clear
+
+. 
+. 
+. //==============================================
+. // 1. Summary Statistics
+. //==============================================
+. 
+. * Compact codebook for quick structure overview
+. codebook, compact
+
+Variable        Obs Unique       Mean        Min       Max  Label
+------------------------------------------------------------------------------------------------------
+Date          10260   1140    20086.5      16100     24073  Week Ending Date (Friday close)
+Fund          10260      9          .          .         .  ETF Identifier (Ticker)
+price         10260   8135   106.8045     5.0183    683.39  ETF Adjusted Close Price (USD)
+fund_ret      10251  10181   .1456048  -27.39049  28.15858  ETF Weekly Log Return (%)
+VIX           10260    853   18.83342       9.14     79.13  CBOE Volatility Index (VIX) - Market Se...
+spx_ret       10251   1139  -.1581123  -11.42367  20.08375  S&P 500 Weekly Log Return (%)
+vix_spx       10251   1139  -3.626243  -825.2333  938.4594  Interaction Term between VIX and SPX Re...
+term_spread   10260   1127   130.4395    -176.46    379.02  Term Spread (10-Year minus 3-Month US T...
+credit_spr~d  10260    505   100.6734         54     346.8  Credit Spread (Baa minus Aaa Corporate ...
+SPX           10260   1138   2462.304     683.38   6849.09  S&P 500 Index Level
+US10YR        10260   1124   3.013878      .5282    5.2223  U.S. 10-Year Treasury Yield (%)
+US3M          10260    678   1.709483     -.0381     5.507  U.S. 3-Month Treasury Yield (%)
+CBAA          10260    901   5.438901       3.11     9.488  Moody's Baa Corporate Bond Yield (%)
+CAAA          10260    854   4.432167      2.034    6.4725  Moody's Aaa Corporate Bond Yield (%)
+------------------------------------------------------------------------------------------------------
+
+. 
+. * Export summary statistics (log scale and regular)
+. outreg2 using "Regression_Output/SummaryStat.doc", ///
+>     replace sum(log) auto(2)
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+        Date |     10,260     20086.5    2303.739      16100      24073
+       price |     10,260    106.8045    106.7819     5.0183     683.39
+    fund_ret |     10,251    .1456048    2.894541  -27.39049   28.15858
+         VIX |     10,260    18.83342    8.515007       9.14      79.13
+     spx_ret |     10,251   -.1581123    2.418004  -11.42367   20.08375
+-------------+---------------------------------------------------------
+     vix_spx |     10,251   -3.626243    85.40727  -825.2333   938.4594
+ term_spread |     10,260    130.4395    129.2599    -176.46     379.02
+credit_spr~d |     10,260    100.6734    42.26185         54      346.8
+         SPX |     10,260    2462.304    1469.471     683.38    6849.09
+      US10YR |     10,260    3.013878    1.143501      .5282     5.2223
+-------------+---------------------------------------------------------
+        US3M |     10,260    1.709483    1.909242     -.0381      5.507
+        CBAA |     10,260    5.438901    1.114756       3.11      9.488
+        CAAA |     10,260    4.432167    .9732146      2.034     6.4725
+
+Following variable is string, not included:  
+Fund  
+Regression_Output/SummaryStat.doc
+dir : seeout
+
+.         
+. 
+. //===============================================
+. // 2. Exploratory Visualizations
+. //===============================================
+. 
+. *** a. SPX weekly closing prices & VIX levels
+. twoway (line SPX Date, sort yaxis(1)) ///
+>         (line VIX Date, sort yaxis(2)), ///
+>     title("SPX Weekly Closing Prices & VIX Levels, Dec. 2004 - Nov. 2025") ///
+>         ytitle("SPX Weekly Closing", axis(1)) ///
+>     ytitle("VIX Levels", axis(2)) xtitle("Date") legend(position(6)) 
+
+. 
+. graph export "Visualization/spx_vs_VIX.png", ///
+>         as(png) replace
+file /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My
+    Drive/ECON467/Le-Project/Data/Analysis_Data/Visualization/spx_vs_VIX.png saved as PNG format
+
+. 
+. 
+. *** b. SPX weekly return & VIX levels 
+. twoway (line spx_ret Date, sort ) ///
+>         (line VIX Date, sort ), ///
+>     title("SPX Weekly Returns & VIX Levels, Dec. 2004 - Nov. 2025") ///
+>         ytitle("Weekly Return (%)/VIX Level (points)") ///
+>         xtitle("Date") legend(position(6)) 
+
+. 
+. graph export "Visualization/spx_return_vs_VIX.png", ///
+>         as(png) replace
+file /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My
+    Drive/ECON467/Le-Project/Data/Analysis_Data/Visualization/spx_return_vs_VIX.png saved as PNG
+    format
+
+. 
+.         
+. *** c. Correlation between S&P 500 returns and VIX levels
+. corr spx_ret VIX
+(obs=10,251)
+
+             |  spx_ret      VIX
+-------------+------------------
+     spx_ret |   1.0000
+         VIX |  -0.0315   1.0000
+
+
+. 
+. 
+. * Scatterplot: SPX returns vs. VIX levels
+. twoway scatter spx_ret VIX, msize(small) ///
+>     title("Relationship Between VIX and S&P 500 Returns, Dec. 2004 - Nov. 2025") ///
+>     ytitle("SPX Weekly Return (%)") xtitle("VIX Level (points)")
+
+. 
+. graph export "Visualization/spx_ret_vs_VIX.png", ///
+>         as(png) replace
+file /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My
+    Drive/ECON467/Le-Project/Data/Analysis_Data/Visualization/spx_ret_vs_VIX.png saved as PNG format
+
+.  
+. 
+. *** d. ETF-Specific Average Returns 
+.         
+. twoway (line fund_ret Date, sort )  ///
+>         (line VIX Date, sort ), ///
+>         by(Fund, style(altleg) ///
+>         title("ETF Weekly Returns & VIX Levels, Dec. 2004 - Nov. 2025") )  ///
+>         ytitle("Weekly Return (%)/VIX Level (points)") ///
+>         xtitle("Date") ysc(noex ) ysize(5) xsize(10)
+
+.     
+. graph export "Visualization/etf_specific_ret_by_VIX.png", ///
+>         as(png) replace 
+file /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My
+    Drive/ECON467/Le-Project/Data/Analysis_Data/Visualization/etf_specific_ret_by_VIX.png saved as
+    PNG format
+
+.         
+.         
+. *** e. Average ETF Returns by VIX Regime
+. 
+. * Generate fund_ret variables by VIX ranges
+. gen fund_ret_1 = fund_ret if VIX < 20
+(3,231 missing values generated)
+
+. gen fund_ret_2 = fund_ret if VIX >= 20 & VIX < 40
+(7,380 missing values generated)
+
+. gen fund_ret_3 = fund_ret if VIX >= 40
+(9,918 missing values generated)
+
+. 
+. * Plot average returns by VIX regimes
+. graph bar fund_ret_1 fund_ret_2 fund_ret_3, over(Fund)  ///
+>     ytitle("Average Weekly Return (%)") ///
+>     title("ETF Average Returns Across VIX Regimes, Dec. 2004 - Nov. 2025") ///
+>     legend(order(1 "VIX < 20" 2 "20 ≤ VIX < 40" 3 "VIX ≥ 40") ///
+>            ring(0) position(5)) ///
+>     bar(1, color(stc3)) bar(2, color(stc1)) bar(3, color(stc2))
+
+. 
+. graph export "Visualization/etf_ret_by_VIX.png", ///
+>         as(png) replace
+file /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My
+    Drive/ECON467/Le-Project/Data/Analysis_Data/Visualization/etf_ret_by_VIX.png saved as PNG format
+
+. 
+. //*****************************************************************************
+. //                                 MAIN ANALYSIS
+. //*****************************************************************************
+. 
+. //=================================================
+. // 0. Reload Full Panel Dataset
+. //=================================================
+. 
+. use "analysis.dta", clear
+
+. 
+. 
+. //=================================================
+. // 1. Panel Setup
+. //=================================================
+. 
+. * Create panel identifier from ETF ticker
+. encode Fund, gen(Fund_id)
+
+. 
+. * Declare panel structure
+. xtset Fund_id Date, weekly
+warning: Variable Date had been formatted %tdnn/dd/CCYY (a daily period), and you asked for a weekly
+         period. Are you sure that is what you want? Format has been changed. Date is now formatted
+         %tw.
+
+Panel variable: Fund_id (strongly balanced)
+ Time variable: Date, 2269w33 to 2422w50, but with gaps
+         Delta: 1 week
+
+. 
+. 
+. //=================================================
+. // 2. Full-Panel Regressions
+. //=================================================
+. 
+. * 2.1 Baseline Model: VIX only
+. 
+. xtreg fund_ret VIX term_spread credit_spread, fe vce(cluster Fund_id)
+
+Fixed-effects (within) regression               Number of obs     =     10,251
+Group variable: Fund_id                         Number of groups  =          9
+
+R-squared:                                      Obs per group:
+     Within  = 0.1211                                         min =      1,139
+     Between =      .                                         avg =    1,139.0
+     Overall = 0.1210                                         max =      1,139
+
+                                                F(3, 8)           =     312.61
+corr(u_i, Xb) = -0.0000                         Prob > F          =     0.0000
+
+                                 (Std. err. adjusted for 9 clusters in Fund_id)
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1625866   .0066099   -24.60   0.000    -.1778291   -.1473441
+  term_spread |   2.96e-07   .0001311     0.00   0.998    -.0003021    .0003027
+credit_spread |   .0220752      .0008    27.59   0.000     .0202305      .02392
+        _cons |   .9851936   .0593835    16.59   0.000     .8482551    1.122132
+--------------+----------------------------------------------------------------
+      sigma_u |  .06736901
+      sigma_e |  2.7144955
+          rho |  .00061557   (fraction of variance due to u_i)
+-------------------------------------------------------------------------------
+
+. 
+. outreg2 using "Regression_Output/results_main.xls", ///
+>     replace ctitle("VIX only")  2aster ///
+>     dec(3) keep(VIX term_spread credit_spread)
+Regression_Output/results_main.xls
+dir : seeout
+
+. 
+. 
+. * 2.2 Add S&P 500 Returns
+. 
+. xtreg fund_ret VIX spx_ret term_spread credit_spread, fe vce(cluster Fund_id)
+
+Fixed-effects (within) regression               Number of obs     =     10,242
+Group variable: Fund_id                         Number of groups  =          9
+
+R-squared:                                      Obs per group:
+     Within  = 0.1231                                         min =      1,138
+     Between =      .                                         avg =    1,138.0
+     Overall = 0.1231                                         max =      1,138
+
+                                                F(4, 8)           =     293.26
+corr(u_i, Xb) = 0.0000                          Prob > F          =     0.0000
+
+                                 (Std. err. adjusted for 9 clusters in Fund_id)
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1618811   .0065631   -24.67   0.000    -.1770157   -.1467466
+      spx_ret |   .0467111   .0085348     5.47   0.001     .0270297    .0663925
+  term_spread |  -.0000282   .0001266    -0.22   0.829    -.0003202    .0002638
+credit_spread |   .0220559   .0008078    27.30   0.000     .0201931    .0239187
+        _cons |    .981333   .0604101    16.24   0.000     .8420271    1.120639
+--------------+----------------------------------------------------------------
+      sigma_u |  .06674513
+      sigma_e |  2.7106169
+          rho |  .00060595   (fraction of variance due to u_i)
+-------------------------------------------------------------------------------
+
+. 
+. outreg2 using "Regression_Output/results_main.xls", ///
+>     append ctitle("+ SPX Return")  2aster ///
+>     dec(3) keep(VIX spx_ret term_spread credit_spread)
+Regression_Output/results_main.xls
+dir : seeout
+
+. 
+. 
+. * 2.3 Full Model with Interaction (VIX × SPX Return)
+. 
+. xtreg fund_ret VIX spx_ret vix_spx term_spread credit_spread, ///
+>     fe vce(cluster Fund_id)
+
+Fixed-effects (within) regression               Number of obs     =     10,242
+Group variable: Fund_id                         Number of groups  =          9
+
+R-squared:                                      Obs per group:
+     Within  = 0.1275                                         min =      1,138
+     Between =      .                                         avg =    1,138.0
+     Overall = 0.1274                                         max =      1,138
+
+                                                F(5, 8)           =    4152.51
+corr(u_i, Xb) = -0.0000                         Prob > F          =     0.0000
+
+                                 (Std. err. adjusted for 9 clusters in Fund_id)
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1602615   .0064364   -24.90   0.000    -.1751039   -.1454192
+      spx_ret |  -.1011366   .0169273    -5.97   0.000    -.1401711   -.0621021
+      vix_spx |   .0047509   .0007411     6.41   0.000     .0030419    .0064598
+  term_spread |  -.0000132   .0001271    -0.10   0.920    -.0003064    .0002799
+credit_spread |   .0219785   .0008059    27.27   0.000     .0201202    .0238368
+        _cons |   .9505719   .0566959    16.77   0.000     .8198309    1.081313
+--------------+----------------------------------------------------------------
+      sigma_u |  .06674513
+      sigma_e |  2.7040067
+          rho |  .00060892   (fraction of variance due to u_i)
+-------------------------------------------------------------------------------
+
+. 
+. outreg2 using "Regression_Output/results_main.xls", ///
+>     append ctitle("+ Interaction")  2aster ///
+>     dec(3) keep(VIX spx_ret vix_spx term_spread credit_spread)
+Regression_Output/results_main.xls
+dir : seeout
+
+. 
+. 
+. * 2.4. Random Effects
+. 
+. xtreg fund_ret VIX spx_ret vix_spx term_spread credit_spread, ///
+>         vce(cluster Fund_id)
+
+Random-effects GLS regression                   Number of obs     =     10,242
+Group variable: Fund_id                         Number of groups  =          9
+
+R-squared:                                      Obs per group:
+     Within  = 0.0000                                         min =      1,138
+     Between = 0.0000                                         avg =    1,138.0
+     Overall = 0.1274                                         max =      1,138
+
+                                                Wald chi2(5)      =   20762.56
+corr(u_i, X) = 0 (assumed)                      Prob > chi2       =     0.0000
+
+                                 (Std. err. adjusted for 9 clusters in Fund_id)
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1602615   .0064364   -24.90   0.000    -.1728767   -.1476464
+      spx_ret |  -.1011366   .0169273    -5.97   0.000    -.1343135   -.0679596
+      vix_spx |   .0047509   .0007411     6.41   0.000     .0032984    .0062033
+  term_spread |  -.0000132   .0001271    -0.10   0.917    -.0002624    .0002359
+credit_spread |   .0219785   .0008059    27.27   0.000     .0203991     .023558
+        _cons |   .9505719    .048811    19.47   0.000      .854904     1.04624
+--------------+----------------------------------------------------------------
+      sigma_u |          0
+      sigma_e |  2.7040067
+          rho |          0   (fraction of variance due to u_i)
+-------------------------------------------------------------------------------
+
+. 
+. outreg2 using "Regression_Output/results_main.xls", ///
+>     append ctitle("Random Effects") dec(3)  2aster
+Regression_Output/results_main.xls
+dir : seeout
+
+. 
+. 
+. //=================================================
+. // 3. ETF-Specific Regressions (Cross-Sectional Differences)
+. //=================================================
+. 
+. levelsof Fund, local(etfs)
+`"EEM"' `"EFA"' `"IWM"' `"QQQ"' `"SPY"' `"VTV"' `"VUG"' `"XLF"' `"XLK"'
+
+. 
+. capture erase "Regression_Output/etf_specific_results.xls"
+
+. 
+. capture erase "Regression_Output/etf_specific_results.txt"
+
+. 
+. foreach f of local etfs {
+  2.     
+.     di "-----------------------------------------------------"
+  3.     di "Running ETF-specific regression for: `f'"
+  4.     di "-----------------------------------------------------"
+  5. 
+.     reg fund_ret VIX spx_ret vix_spx term_spread credit_spread ///
+>         if Fund == "`f'", robust
+  6. 
+.     outreg2 using "Regression_Output/etf_specific_results.xls", ///
+>         append ctitle("`f'") dec(3)  2aster
+  7. }
+-----------------------------------------------------
+Running ETF-specific regression for: EEM
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      10.91
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1109
+                                                Root MSE          =     3.0837
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1697667   .0267964    -6.34   0.000    -.2223429   -.1171905
+      spx_ret |  -.1198333    .130339    -0.92   0.358    -.3755665    .1358998
+      vix_spx |   .0045779   .0054345     0.84   0.400    -.0060848    .0152407
+  term_spread |  -.0002698   .0006582    -0.41   0.682    -.0015611    .0010216
+credit_spread |    .025195    .004492     5.61   0.000     .0163814    .0340086
+        _cons |   .7850082   .4973435     1.58   0.115    -.1908104    1.760827
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: EFA
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =       8.47
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1332
+                                                Root MSE          =     2.4909
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1538474   .0285624    -5.39   0.000    -.2098885   -.0978063
+      spx_ret |  -.0735155   .1033296    -0.71   0.477    -.2762545    .1292235
+      vix_spx |   .0031256   .0045431     0.69   0.492    -.0057881    .0120394
+  term_spread |  -.0001388   .0005546    -0.25   0.802    -.0012269    .0009494
+credit_spread |   .0212191   .0040663     5.22   0.000     .0132408    .0291974
+        _cons |   .8399612   .3800994     2.21   0.027     .0941827     1.58574
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: IWM
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      11.73
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1358
+                                                Root MSE          =     2.9576
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1867189    .029329    -6.37   0.000    -.2442641   -.1291736
+      spx_ret |  -.0588186   .1150872    -0.51   0.609    -.2846268    .1669895
+      vix_spx |     .00277   .0050528     0.55   0.584    -.0071439    .0126839
+  term_spread |   .0005145   .0006839     0.75   0.452    -.0008274    .0018564
+credit_spread |    .025569   .0045508     5.62   0.000     .0166401    .0344979
+        _cons |    .999053   .4173138     2.39   0.017     .1802574    1.817849
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: QQQ
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      13.38
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1239
+                                                Root MSE          =     2.5875
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1522292    .022524    -6.76   0.000    -.1964227   -.1080357
+      spx_ret |  -.0751349   .0807761    -0.93   0.352    -.2336225    .0833528
+      vix_spx |   .0034782   .0034046     1.02   0.307    -.0032018    .0101582
+  term_spread |  -.0001962   .0005937    -0.33   0.741    -.0013611    .0009687
+credit_spread |    .021732   .0034879     6.23   0.000     .0148886    .0285754
+        _cons |   .9481811   .3193607     2.97   0.003     .3215756    1.574786
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: SPY
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =       8.48
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1499
+                                                Root MSE          =     2.2558
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1448285   .0262485    -5.52   0.000    -.1963297   -.0933273
+      spx_ret |  -.0953036   .0907488    -1.05   0.294    -.2733584    .0827511
+      vix_spx |   .0048381   .0039287     1.23   0.218    -.0028702    .0125464
+  term_spread |  -.0000406   .0004927    -0.08   0.934    -.0010074    .0009261
+credit_spread |   .0196324   .0038058     5.16   0.000     .0121653    .0270995
+        _cons |     .91312   .3585754     2.55   0.011     .2095729    1.616667
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: VTV
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =       8.18
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1432
+                                                Root MSE          =     2.2666
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1422904   .0253968    -5.60   0.000    -.1921205   -.0924602
+      spx_ret |  -.0440345   .0902024    -0.49   0.626    -.2210171    .1329482
+      vix_spx |   .0036609   .0039237     0.93   0.351    -.0040376    .0113595
+  term_spread |   .0003732   .0004836     0.77   0.440    -.0005756    .0013221
+credit_spread |   .0183801    .004059     4.53   0.000     .0104161    .0263441
+        _cons |   .9032082   .3612331     2.50   0.013     .1944465     1.61197
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: VUG
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      11.09
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1392
+                                                Root MSE          =     2.4077
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1492482   .0244666    -6.10   0.000    -.1972533   -.1012432
+      spx_ret |  -.1021782   .0829916    -1.23   0.219    -.2650129    .0606565
+      vix_spx |   .0045019   .0035521     1.27   0.205    -.0024675    .0114714
+  term_spread |  -.0003803   .0005501    -0.69   0.489    -.0014597     .000699
+credit_spread |   .0209011   .0035434     5.90   0.000     .0139488    .0278534
+        _cons |   .9536526   .3263374     2.92   0.004     .3133584    1.593947
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: XLF
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      10.47
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1334
+                                                Root MSE          =     3.4177
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |  -.1955936   .0302001    -6.48   0.000    -.2548481   -.1363392
+      spx_ret |  -.2157923   .1470293    -1.47   0.142    -.5042729    .0726884
+      vix_spx |   .0101591   .0064116     1.58   0.113    -.0024209    .0227391
+  term_spread |   .0005012   .0006454     0.78   0.438    -.0007652    .0017676
+credit_spread |   .0237072   .0069758     3.40   0.001     .0100203    .0373941
+        _cons |    1.30293   .6593181     1.98   0.048     .0093076    2.596553
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+-----------------------------------------------------
+Running ETF-specific regression for: XLK
+-----------------------------------------------------
+
+Linear regression                               Number of obs     =      1,138
+                                                F(5, 1132)        =      11.13
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.1210
+                                                Root MSE          =     2.6359
+
+-------------------------------------------------------------------------------
+              |               Robust
+     fund_ret | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+          VIX |   -.147831   .0241778    -6.11   0.000    -.1952693   -.1003927
+      spx_ret |  -.1256182   .0836061    -1.50   0.133    -.2896586    .0384221
+      vix_spx |    .005646   .0034027     1.66   0.097    -.0010303    .0123223
+  term_spread |  -.0004822   .0006292    -0.77   0.444    -.0017167    .0007524
+credit_spread |    .021471   .0037045     5.80   0.000     .0142025    .0287394
+        _cons |   .9100327   .3210113     2.83   0.005     .2801887    1.539877
+-------------------------------------------------------------------------------
+Regression_Output/etf_specific_results.xls
+dir : seeout
+
+. 
+. 
+. //*****************************************************************************
+. //                                   THE END
+. //*****************************************************************************
+. 
+. 
+. 
+. log close analysis
+      name:  analysis
+       log:  /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My Drive/ECON467/Le-Proje
+> ct/Data/Analysis_Data/../../Command_Files/Analysis.log
+  log type:  text
+ closed on:  13 Dec 2025, 23:42:39
+------------------------------------------------------------------------------------------------------

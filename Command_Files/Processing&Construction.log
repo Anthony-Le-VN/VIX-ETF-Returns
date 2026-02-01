@@ -1,0 +1,203 @@
+------------------------------------------------------------------------------------------------------
+      name:  processing
+       log:  /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My Drive/ECON467/Le-Proje
+> ct/Command_Files/Processing&Construction.log
+  log type:  text
+ opened on:  14 Dec 2025, 14:57:27
+
+. 
+. 
+. * Optional setup (uncomment if needed)
+. // ssc install outreg2
+. // ssc install aaplot
+. // graph set window fontface "Garamond"
+. 
+. 
+. //*****************************************************************************
+. //                                      CONSTRUCTION
+. //*****************************************************************************
+. 
+. * Import data
+. import excel using "Data/Original_Data/bloomberg_importable.xlsx", ///
+>     firstrow clear
+(16 vars, 1,140 obs)
+
+. 
+. 
+. //=============================================================================
+. // 1. Create sentiment & macro variables
+. //=============================================================================
+. 
+. * Compute weekly S&P 500 log returns
+. gen spx_ret = 100 * (ln(SPX[_n])-ln(SPX[_n-1]))
+(1 missing value generated)
+
+. 
+. * Interaction term
+. gen vix_spx = VIX * spx_ret
+(1 missing value generated)
+
+. 
+. * Compute yield spreads (term and credit)
+. gen term_spread   = 100 * (US10YR - US3M)
+
+. gen credit_spread = 100 * (CBAA   - CAAA)
+
+. 
+. * Save dataset with new variables 
+. save "Data/Original_Data/bloomberg_final.dta", replace
+file Data/Original_Data/bloomberg_final.dta saved
+
+. 
+. //=============================================================================
+. // 2. Reshape price data to long format
+. //=============================================================================
+. 
+. * Rename price variables to prepare for reshaping
+. rename SPY price1
+
+. rename QQQ price2
+
+. rename IWM price3
+
+. rename VUG price4
+
+. rename VTV price5
+
+. rename EFA price6
+
+. rename EEM price7
+
+. rename XLF price8
+
+. rename XLK price9
+
+. 
+. * Reshape from wide to long form
+. reshape long price, i(Date) j(Fund)
+(j = 1 2 3 4 5 6 7 8 9)
+
+Data                               Wide   ->   Long
+-----------------------------------------------------------------------------
+Number of observations            1,140   ->   10,260      
+Number of variables                  20   ->   13          
+j variable (9 values)                     ->   Fund
+xij variables:
+               price1 price2 ... price9   ->   price
+-----------------------------------------------------------------------------
+
+. 
+. * Convert Fund codes (1–9) into ETF ticker labels
+. tostring Fund, replace
+Fund was byte now str1
+
+. replace Fund = "SPY" if Fund == "1"
+variable Fund was str1 now str3
+(1,140 real changes made)
+
+. replace Fund = "QQQ" if Fund == "2"
+(1,140 real changes made)
+
+. replace Fund = "IWM" if Fund == "3"
+(1,140 real changes made)
+
+. replace Fund = "VUG" if Fund == "4"
+(1,140 real changes made)
+
+. replace Fund = "VTV" if Fund == "5"
+(1,140 real changes made)
+
+. replace Fund = "EFA" if Fund == "6"
+(1,140 real changes made)
+
+. replace Fund = "EEM" if Fund == "7"
+(1,140 real changes made)
+
+. replace Fund = "XLF" if Fund == "8"
+(1,140 real changes made)
+
+. replace Fund = "XLK" if Fund == "9"
+(1,140 real changes made)
+
+. 
+. * Sort by fund and date to ensure correct return calculations
+. sort Fund Date
+
+. 
+. 
+. //=============================================================================
+. // 3. Calculate und returns
+. //=============================================================================
+. 
+. * Calculate weekly log returns for each ETF
+. bysort Fund (Date): gen fund_ret = 100 * (ln(price[_n])-ln(price[_n-1]))
+(9 missing values generated)
+
+. 
+. 
+. //=============================================================================
+. // 4. Label Variables 
+. //=============================================================================
+. 
+. label variable Date       "Week Ending Date (Friday close)"
+
+. label variable Fund       "ETF Identifier (Ticker)"
+
+. label variable price  "ETF Adjusted Close Price (USD)"
+
+. label variable VIX        "CBOE Volatility Index (VIX) - Market Sentiment Indicator"
+
+. label variable SPX    "S&P 500 Index Level"
+
+. 
+. label variable US10YR  "U.S. 10-Year Treasury Yield (%)"
+
+. label variable US3M    "U.S. 3-Month Treasury Yield (%)"
+
+. label variable CBAA    "Moody's Baa Corporate Bond Yield (%)"
+
+. label variable CAAA    "Moody's Aaa Corporate Bond Yield (%)"
+
+. 
+. label variable vix_spx    "Interaction Term between VIX and SPX Returns"
+
+. label variable fund_ret   "ETF Weekly Log Return (%)"
+
+. label variable spx_ret    "S&P 500 Weekly Log Return (%)"
+
+. 
+. label variable term_spread   ///
+>         "Term Spread (10-Year minus 3-Month US Treasury, basis points)"
+
+. label variable credit_spread ///
+>         "Credit Spread (Baa minus Aaa Corporate Bond Yield, basis points)"
+
+. 
+. 
+. 
+. //=============================================================================
+. // 5. Save data
+. //=============================================================================
+. 
+. order Date Fund price fund_ret VIX spx_ret vix_spx term_spread credit_spread SPX 
+
+. 
+. 
+. * Save processed dataset in Analysis_Data folder
+. save "Data/Analysis_Data/analysis.dta", replace
+file Data/Analysis_Data/analysis.dta saved
+
+. 
+.         
+.         
+. //*****************************************************************************
+. //                                              THE END
+. //*****************************************************************************
+. 
+. log close processing
+      name:  processing
+       log:  /Users/le_a4/Library/CloudStorage/GoogleDrive-le_a4@denison.edu/My Drive/ECON467/Le-Proje
+> ct/Command_Files/Processing&Construction.log
+  log type:  text
+ closed on:  14 Dec 2025, 14:57:27
+------------------------------------------------------------------------------------------------------
